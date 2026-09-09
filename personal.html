@@ -8,36 +8,36 @@
   </style>
 </head>
 <body>
-<header><h1>PLAÇA 18 · Personal</h1><a href="index.html">← Tornar al tauler</a></header>
+<header><h1>PLAÇA 18 · Personal</h1><span><a href="regles.html">Regles</a> <a href="index.html">← Tornar al tauler</a></span></header>
 <main>
   <div class="bar"><div><h2>Fitxa de personal</h2><div class="note">Edita les dades i l’ordre de preferència de cada treballador.</div></div><button id="new">+ Afegir treballador</button></div>
   <form class="form" id="form">
     <label>Nom curt<input id="short" required></label><label class="wide">Nom i llinatges<input id="full" required></label>
-    <label>Telèfon<input id="phone" inputmode="tel"></label><label>Rol<select id="role"><option>Treballador</option><option>Responsable</option><option>Cap de taller</option><option>Gerència</option><option>RRHH</option></select></label>
+    <label>Telèfon<input id="phone" inputmode="tel"></label><label>Rol<select id="role"><option>Treballador</option><option>Responsable</option><option>Cap de taller</option><option>Gerència</option><option>RRHH</option></select></label><label>Disponibilitat<select id="shift"><option value="ambdos">Matí i horabaixa</option><option value="mati">Només matí</option><option value="tarda">Només horabaixa</option></select></label>
     <label>Assignació 1<select id="p1"></select></label><label>Assignació 2<select id="p2"></select></label><label>Assignació 3<select id="p3"></select></label><label>Assignació 4<select id="p4"></select></label>
     <div class="form-actions"><button id="save" type="submit">Desar canvis</button><button id="cancel" class="secondary" type="button">Cancel·lar</button></div>
   </form>
-  <table><thead><tr><th>Nom curt</th><th>Nom i llinatges</th><th>Telèfon</th><th>Rol</th><th>1</th><th>2</th><th>3</th><th>4</th><th>Estat</th><th>Accions</th></tr></thead><tbody id="rows"></tbody></table>
+  <table><thead><tr><th>Nom curt</th><th>Nom i llinatges</th><th>Telèfon</th><th>Rol</th><th>Disponibilitat</th><th>1</th><th>2</th><th>3</th><th>4</th><th>Estat</th><th>Accions</th></tr></thead><tbody id="rows"></tbody></table>
 </main>
 <script>
 const key='pl18-personal';
 const places=['','Taller','Pantalles','Brodat','DTF','Magatzem','Disseny'];
 const initialPeople=[
  ['PINGÜI','ANDRES ANGEL PEREZ NIGORRA','Treballador',['Magatzem']],['ANDREU','ANDREU PICORNELL NICOLAU','Cap de taller',['Taller','Pantalles']],['BARBARA','BARBARA PRATS BARCELÓ','Responsable',['Brodat']],['CARLOS','CARLOS VILLALONGA ORTÍZ','Treballador',['Taller','DTF']],['CLAUDIA','CLAUDIA CANOVAS FLORES','Treballador',['DTF','Taller']],['FANI','ESTEFANIA GONZALEZ LLINAS','Responsable',['DTF','Brodat','Taller']],['LUPE','GUADALUPE ORTÍZ TINOCO','Treballador',['Taller','DTF']],['JAUMET','JAUME BLASCOS GOMEZ','Cap de taller',['Taller']],['JOHNNY','JHONNY_ALEXANDER CONTRERAS GARAVITO','Treballador',['Magatzem','Taller']],['JOANNA','JOANNA GONZÁLEZ OLIVA','Treballador',['DTF','Taller','Magatzem']],['JOAN REÜLL','JUAN JULIA SASTRE','Treballador',['Taller']],['LLINÀS','JUAN LLINAS COLOM','Treballador',['Taller','Pantalles']],['JOAN PONS','JUAN PONS SEGURA','Treballador',['Magatzem']],['LOURDES','M_LOURDES CALAFAT MARTORELL','Treballador',['Taller']],['MAGDALENA','MAGDALENA VICH RAMOS','Responsable',['Magatzem']],['MANEL','MANEL GARCIA DE LA ROSA','Treballador',['Pantalles','Taller']],['MARGALIDA','MARGARITA BIBILONI FUSTER','Treballador',['Taller']],['MARIA','MARIA ADROVER VICH','Treballador',['Brodat','DTF','Taller']],['MOHA','MOHAMED DAHBI','Treballador',['Magatzem']],['RAFEL','RAFAEL_ANTONIO GARCIA OLIVER','Treballador',['Magatzem']],['REBECA','REBECA VEIGAS SUÁREZ','Treballador',['Pantalles','Taller','Disseny']],['ROSI','ROSA MARIA LÓPEZ MARTÍN','Treballador',['DTF','Magatzem','Taller']]
-].map(([short,full,role,p])=>({short,full,phone:'',role,p:[...p,'','',''].slice(0,4),active:true}));
-function normalise(person){const preset=initialPeople.find(x=>x.short===person.short);return {...preset,...person,full:person.full||preset?.full||'',p:[...(person.p||[]),'','',''].slice(0,4),active:person.active!==false}}
+].map(([short,full,role,p])=>({short,full,phone:'',role,p:[...p,'','',''].slice(0,4),shift:['FANI','MAGDALENA'].includes(short)?'mati':'ambdos',active:true}));
+function normalise(person){const preset=initialPeople.find(x=>x.short===person.short);return {...preset,...person,full:person.full||preset?.full||'',p:[...(person.p||[]),'','',''].slice(0,4),shift:person.shift||preset?.shift||'ambdos',active:person.active!==false}}
 let stored;try{stored=JSON.parse(localStorage.getItem(key)||'null')}catch(e){}let people=(stored?.length?stored:initialPeople).map(normalise),editing=null;
 const rows=document.querySelector('#rows'),form=document.querySelector('#form');
 for(const id of ['p1','p2','p3','p4'])document.getElementById(id).innerHTML=places.map((p,i)=>`<option value="${p}">${i?'':'— Sense assignació —'}${i?p:''}</option>`).join('');
 function esc(x){return String(x||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
 function save(){localStorage.setItem(key,JSON.stringify(people));draw()}
-function draw(){rows.innerHTML=people.length?people.map((p,i)=>`<tr class="${p.active?'':'off'}"><td><b>${esc(p.short)}</b></td><td>${esc(p.full)}</td><td>${esc(p.phone)}</td><td>${esc(p.role)}</td><td>${esc(p.p[0])}</td><td>${esc(p.p[1])}</td><td>${esc(p.p[2])}</td><td>${esc(p.p[3])}</td><td class="status">${p.active?'Actiu':'Baixa'}</td><td class="actions"><button class="secondary" onclick="edit(${i})">Editar</button><button class="${p.active?'danger':'secondary'}" onclick="toggle(${i})">${p.active?'Baixa':'Reactivar'}</button></td></tr>`).join(''):'<tr><td class="empty" colspan="10">No hi ha treballadors.</td></tr>'}
-function edit(i){editing=i;const p=people[i];short.value=p.short;full.value=p.full;phone.value=p.phone;role.value=p.role;p.p.forEach((x,n)=>document.getElementById('p'+(n+1)).value=x);document.querySelector('#save').textContent='Desar canvis';form.classList.add('show');form.scrollIntoView({behavior:'smooth',block:'start'})}
+function draw(){rows.innerHTML=people.length?people.map((p,i)=>`<tr class="${p.active?'':'off'}"><td><b>${esc(p.short)}</b></td><td>${esc(p.full)}</td><td>${esc(p.phone)}</td><td>${esc(p.role)}</td><td>${p.shift==='mati'?'Només matí':p.shift==='tarda'?'Només horabaixa':'Matí i horabaixa'}</td><td>${esc(p.p[0])}</td><td>${esc(p.p[1])}</td><td>${esc(p.p[2])}</td><td>${esc(p.p[3])}</td><td class="status">${p.active?'Actiu':'Baixa'}</td><td class="actions"><button class="secondary" onclick="edit(${i})">Editar</button><button class="${p.active?'danger':'secondary'}" onclick="toggle(${i})">${p.active?'Baixa':'Reactivar'}</button></td></tr>`).join(''):'<tr><td class="empty" colspan="11">No hi ha treballadors.</td></tr>'}
+function edit(i){editing=i;const p=people[i];short.value=p.short;full.value=p.full;phone.value=p.phone;role.value=p.role;shift.value=p.shift;p.p.forEach((x,n)=>document.getElementById('p'+(n+1)).value=x);document.querySelector('#save').textContent='Desar canvis';form.classList.add('show');form.scrollIntoView({behavior:'smooth',block:'start'})}
 function closeForm(){editing=null;form.reset();form.classList.remove('show')}
 function toggle(i){people[i].active=!people[i].active;save()}
 document.querySelector('#new').onclick=()=>{closeForm();document.querySelector('#save').textContent='Afegir treballador';form.classList.add('show');short.focus()};
 document.querySelector('#cancel').onclick=closeForm;
-form.onsubmit=e=>{e.preventDefault();const record={short:short.value.trim().toUpperCase(),full:full.value.trim(),phone:phone.value.trim(),role:role.value,p:[p1.value,p2.value,p3.value,p4.value],active:editing===null?true:people[editing].active};if(editing===null)people.push(record);else people[editing]=record;closeForm();save()};
+form.onsubmit=e=>{e.preventDefault();const record={short:short.value.trim().toUpperCase(),full:full.value.trim(),phone:phone.value.trim(),role:role.value,shift:shift.value,p:[p1.value,p2.value,p3.value,p4.value],active:editing===null?true:people[editing].active};if(editing===null)people.push(record);else people[editing]=record;closeForm();save()};
 draw();
 </script>
 </body></html>
