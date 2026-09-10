@@ -2,6 +2,7 @@
   const url = 'https://acxrmvfbhedxyukbbycw.supabase.co';
   const key = 'sb_publishable_YNIrSLjAQB5VeHRyBq7b8w_x8Gh8oou';
   const sb = window.supabase.createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true } });
+  const vapidPublicKey = 'BGpg_p-MDJifkOS7BossO936zOjkdg9zdffzDR9JbUsdKqR7_KmQTJJAideUxggWR0OE8__9fOii4p1JEA6SG8A';
   const administrators = [
     ['Lluís Segura', 'lss@pl18.com'],
     ['lluisegura', 'lluisegura@gmail.com'],
@@ -52,7 +53,7 @@
   function addAccountControls(isAdmin, email) {
     if (!isAdmin || document.querySelector('#pl18-account-controls')) return;
     const controls = document.createElement('div'); controls.id = 'pl18-account-controls';
-    controls.innerHTML = (email==='lss@pl18.com'?'<button type="button" id="pl18-prepare-pins">Activar PINs</button>':'')+'<button type="button" id="pl18-change-pin">Canviar PIN</button><button type="button" id="pl18-signout">Sortir</button>';
+    controls.innerHTML = (email==='lss@pl18.com'?'<button type="button" id="pl18-prepare-pins">Activar PINs</button>':'')+'<button type="button" id="pl18-enable-push">Activar avisos</button><button type="button" id="pl18-change-pin">Canviar PIN</button><button type="button" id="pl18-signout">Sortir</button>';
     document.body.appendChild(controls);
     document.querySelector('#pl18-signout').onclick = signOut;
     document.querySelector('#pl18-prepare-pins')?.addEventListener('click', async () => {
@@ -60,6 +61,7 @@
       const { data, error } = await sb.functions.invoke('prepare-admin-pins');
       alert(error || data?.error ? 'No s’han pogut activar els PINs.' : 'PIN temporal activat per a '+data.prepared+' administradors.');
     });
+    document.querySelector('#pl18-enable-push').onclick = enablePush;
     document.querySelector('#pl18-change-pin').onclick = async () => {
       const pin = prompt('Nou PIN de 6 dígits:');
       if (pin === null) return;
@@ -67,6 +69,25 @@
       const { error } = await sb.auth.updateUser({ password: pin });
       alert(error ? 'No s’ha pogut canviar el PIN.' : 'PIN actualitzat correctament.');
     };
+  }
+  function toUint8Array(value) {
+    const padded = value + '='.repeat((4 - value.length % 4) % 4);
+    const raw = atob(padded.replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from(raw, c => c.charCodeAt(0));
+  }
+  async function enablePush() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) { alert('Aquest navegador no admet avisos push.'); return; }
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    if (/iPhone|iPad|iPod/.test(navigator.userAgent) && !standalone) { alert('A l’iPhone, primer comparteix el tauler i selecciona «Afegir a la pantalla d’inici». Després obre’l des de la icona i activa els avisos.'); return; }
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') { alert('No s’han autoritzat els avisos. Pots activar-los des dels ajustos del navegador.'); return; }
+    try {
+      const registration = await navigator.serviceWorker.register('sw.js');
+      const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toUint8Array(vapidPublicKey) });
+      const { data, error } = await sb.functions.invoke('subscribe-push', { body: { subscription: subscription.toJSON() } });
+      if (error || data?.error) throw error || new Error(data.error);
+      alert('Avisos activats en aquest dispositiu.');
+    } catch (error) { console.error(error); alert('No s’han pogut activar els avisos. Torna-ho a provar d’aquí uns minuts.'); }
   }
   window.PL18 = { sb, requireAuth, showLogin, signOut };
 
