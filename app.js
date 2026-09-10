@@ -87,7 +87,7 @@
       const { data, error } = await sb.functions.invoke('subscribe-push', { body: { subscription: subscription.toJSON() } });
       if (error || data?.error) throw error || new Error(data.error);
       alert('Avisos activats en aquest dispositiu.');
-    } catch (error) { console.error(error); alert('No s’han pogut activar els avisos. Torna-ho a provar d’aquí uns minuts.'); }
+    } catch (error) { console.error(error); alert('No s’han pogut activar els avisos: '+(error?.message||String(error))); }
   }
   window.PL18 = { sb, requireAuth, showLogin, signOut };
 
