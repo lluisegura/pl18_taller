@@ -40,4 +40,26 @@ document.querySelector('#cancel').onclick=closeForm;
 form.onsubmit=e=>{e.preventDefault();const record={short:short.value.trim().toUpperCase(),full:full.value.trim(),phone:phone.value.trim(),role:role.value,shift:shift.value,p:[p1.value,p2.value,p3.value,p4.value],active:editing===null?true:people[editing].active};if(editing===null)people.push(record);else people[editing]=record;closeForm();save()};
 draw();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js"></script><script>
+/* Personal compartit a Supabase */
+(async()=>{
+  const auth=await PL18.requireAuth();if(!auth)return;const sb=PL18.sb;
+  if(!auth.isAdmin){document.body.classList.add('pl18-viewer');document.querySelector('#new').disabled=true;document.querySelectorAll('.actions button,#save,#cancel').forEach(x=>x.disabled=true);}
+  async function loadPeople(){
+    const {data,error}=await sb.from('pl18_staff').select('*').order('short_name');
+    if(error){console.error(error);return}
+    people=(data||[]).map(p=>normalise({id:p.id,short:p.short_name,full:p.full_name,phone:p.phone_e164||'',role:p.role,p:p.preferences||[],shift:p.availability,active:p.active}));
+    localStorage.setItem(key,JSON.stringify(people));draw();
+  }
+  save=async function(){
+    localStorage.setItem(key,JSON.stringify(people));draw();
+    if(!auth.isAdmin)return;
+    const rows=people.map(p=>({id:p.id,short_name:p.short,full_name:p.full,phone_e164:p.phone||null,role:p.role,availability:p.shift,preferences:p.p.filter(Boolean),active:p.active}));
+    const {error}=await sb.from('pl18_staff').upsert(rows);
+    if(error){console.error(error);alert('No s’han pogut desar els canvis.');return} await loadPeople();
+  };
+  await loadPeople();
+  sb.channel('pl18-personal-live').on('postgres_changes',{event:'*',schema:'public',table:'pl18_staff'},loadPeople).subscribe();
+})();
+</script>
 </body></html>

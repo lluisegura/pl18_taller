@@ -9,10 +9,10 @@
 <script>
 const defaultStaff=[['PINGÜI',['Magatzem'],'ambdos'],['ANDREU',['Serigrafia','Pantalles'],'ambdos'],['CARLOS',['Serigrafia','DTF'],'ambdos'],['CLAUDIA',['DTF','Serigrafia'],'ambdos'],['FANI',['DTF','Brodat','Serigrafia'],'mati'],['LUPE',['Serigrafia','DTF'],'ambdos'],['JAUMET',['Serigrafia'],'ambdos'],['JOHNNY',['Magatzem','Serigrafia'],'ambdos'],['JOANNA',['DTF','Serigrafia','Magatzem'],'ambdos'],['JOAN REÜLL',['Serigrafia'],'ambdos'],['LLINÀS',['Serigrafia','Pantalles'],'ambdos'],['JOAN PONS',['Magatzem'],'ambdos'],['LOURDES',['Serigrafia'],'ambdos'],['MAGDALENA',['Magatzem'],'mati'],['MANEL',['Pantalles','Serigrafia'],'ambdos'],['MARGALIDA',['Serigrafia'],'ambdos'],['MARIA',['Brodat','DTF','Serigrafia'],'ambdos'],['MOHA',['Magatzem'],'ambdos'],['RAFEL',['Magatzem'],'ambdos'],['REBECA',['Pantalles','Serigrafia','Disseny'],'ambdos'],['ROSI',['DTF','Magatzem','Serigrafia'],'ambdos'],['BARBARA',['Brodat'],'ambdos']];
 function readStaff(){try{const saved=JSON.parse(localStorage.getItem('pl18-personal')||'null');if(Array.isArray(saved)&&saved.length)return saved.filter(p=>p.active!==false).map(p=>[p.short,(p.p||[]).filter(Boolean).map(x=>x==='Taller'?'Serigrafia':x),p.shift||'ambdos']);}catch(e){}return defaultStaff}
-const staff=readStaff();
+let staff=readStaff();
 const defaultRules={mins:{Brodat:2,DTF:3,Magatzem:3},fixed:{Serigrafia:['LOURDES','JAUMET','ANDREU','LLINÀS','MARGALIDA','JOAN REÜLL','LUPE'],Pantalles:['MANEL','REBECA'],DTF:['CLAUDIA'],Brodat:['BARBARA'],Magatzem:['PINGÜI','MOHA','JOAN PONS','MAGDALENA','RAFEL','JOHNNY'],Disseny:[]},priorities:{Serigrafia:['ANDREU','JAUMET'],Pantalles:['MANEL','REBECA'],DTF:['CLAUDIA'],altres:''}};
 function readRules(){try{const r=JSON.parse(localStorage.getItem('pl18-rules')||'null');return r?{...defaultRules,...r,mins:{...defaultRules.mins,...r.mins},fixed:{...defaultRules.fixed,...r.fixed},priorities:{...defaultRules.priorities,...r.priorities}}:defaultRules}catch(e){return defaultRules}}
-const rules=readRules();
+let rules=readRules();
 const leaders={ANDREU:'Cap de taller',JAUMET:'Cap de taller',BARBARA:'Responsable de Brodat',FANI:'Responsable de DTF',MAGDALENA:'Cap de Magatzem'};
 const zones=[...document.querySelectorAll('.zone')],list=document.querySelector('#people-list'),unavailableList=document.querySelector('#unavailable-list'),unavailableBox=document.querySelector('#unavailable');let activeShift='mati',selected=null;
 function applyRulesToBoard(){zones.forEach(z=>{const min=rules.mins[z.dataset.zone]||0;z.dataset.min=min;const need=z.querySelector('.need');if(z.dataset.zone==='Brodat')need.textContent='Mínim: '+min+' persones';if(z.dataset.zone==='DTF')need.textContent='Mínim: '+min+' · punta: 4';if(z.dataset.zone==='Magatzem')need.textContent='Mínim: '+min+' persones'})}
@@ -36,4 +36,49 @@ unavailableBox.addEventListener('dragover',e=>e.preventDefault());unavailableBox
 document.querySelector('#reset').onclick=reset;document.querySelector('#proposal').onclick=proposal;document.querySelectorAll('[data-shift]').forEach(b=>b.onclick=()=>setShift(b.dataset.shift));document.querySelector('#day').value=new Date().toISOString().slice(0,10);render();
 function generatePdf(){const date=document.querySelector('#day').value?new Date(document.querySelector('#day').value+'T12:00:00').toLocaleDateString('ca-ES',{weekday:'long',year:'numeric',month:'long',day:'numeric'}):'';const shift=activeShift==='mati'?'Torn de matí':'Torn d’horabaixa';const blocks=zones.map(z=>'<section><h2>'+z.dataset.zone+'</h2><div>'+(state.assignments.filter(x=>x[1]===z.dataset.zone).map(x=>'<span>'+x[0]+'</span>').join('')||'<em>Sense personal assignat</em>')+'</div></section>').join('');const absent=[...new Set([...state.unavailable,...staff.filter(([name])=>automaticUnavailable(name)).map(x=>x[0])])].sort((a,b)=>a.localeCompare(b,'ca'));const w=window.open('','_blank');if(!w){alert('Permet les finestres emergents per generar el PDF.');return}w.document.write('<!doctype html><html lang="ca"><meta charset="utf-8"><title>Planificació Plaça 18</title><style>@page{size:A4 portrait;margin:11mm}html,body{width:100%;height:100%;margin:0}body{font-family:Arial,sans-serif;color:#12263b;font-size:10.5pt;box-sizing:border-box}header{border-bottom:3px solid #102c48;padding:0 0 8mm;margin-bottom:7mm}h1{margin:0;font-size:21pt;letter-spacing:.2px}header p{margin:3mm 0 0;color:#52677a;font-size:11pt}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5mm;grid-auto-rows:43mm}section{border:1px solid #cfdce4;border-radius:5px;overflow:hidden;break-inside:avoid}h2{margin:0;background:#e7f0f5;padding:3.5mm 4mm;font-size:11pt}section div{padding:4mm;line-height:1.25}span{display:inline-block;background:#f4f7f9;border:1px solid #d6e0e6;border-radius:4px;padding:2.3mm 3mm;margin:0 2mm 2mm 0;font-weight:bold;font-size:9.5pt}em{color:#687b8d;font-size:9.5pt}.absent{margin-top:7mm;border-top:1px solid #cfdce4;padding-top:4mm;break-inside:avoid}.absent h2{margin:0 0 3mm;font-size:11pt}.footer{position:fixed;left:0;right:0;bottom:0;font-size:8pt;color:#687b8d}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style><body><header><h1>PLAÇA 18 · Planificació de personal</h1><p>'+date+' · '+shift+'</p></header><main><div class="grid">'+blocks+'</div><div class="absent"><h2>Personal no disponible</h2>'+(absent.length?absent.map(n=>'<span>'+n+'</span>').join(''):'<em>Cap persona no disponible</em>')+'</div></main><div class="footer">Generat des del Tauler operatiu de Plaça 18</div><script>window.onload=function(){window.print()}<\\/script></body></html>');w.document.close()}
 document.querySelector('#pdf').onclick=generatePdf;
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js"></script><script>
+/* Sincronització de la planificació entre dispositius */
+(async()=>{
+  const auth=await PL18.requireAuth(); if(!auth)return;
+  const sb=PL18.sb, day=document.querySelector('#day'); let loading=false;
+  if(!auth.isAdmin)document.body.classList.add('pl18-viewer');
+  async function readSharedData(){
+    const [{data:staffRows,error:staffError},{data:ruleRow,error:ruleError}]=await Promise.all([
+      sb.from('pl18_staff_public').select('*').order('short_name'),
+      sb.from('pl18_rules').select('value').eq('rule_key','minimum_proposal').maybeSingle()
+    ]);
+    if(staffError||ruleError){console.error(staffError||ruleError);return}
+    staff=(staffRows||[]).filter(p=>p.active!==false).map(p=>[p.short_name,(p.preferences||[]).filter(Boolean).map(x=>x==='Taller'?'Serigrafia':x),p.availability||'ambdos']);
+    if(ruleRow?.value)rules={...defaultRules,...ruleRow.value,mins:{...defaultRules.mins,...(ruleRow.value.mins||{})},fixed:{...defaultRules.fixed,...(ruleRow.value.fixed||{})},priorities:{...defaultRules.priorities,...(ruleRow.value.priorities||{})}};
+    localStorage.setItem('pl18-personal',JSON.stringify((staffRows||[]).map(p=>({short:p.short_name,p:p.preferences||[],shift:p.availability,active:p.active}))));
+    localStorage.setItem('pl18-rules',JSON.stringify(rules)); applyRulesToBoard();
+  }
+  async function loadPlan(){
+    loading=true;
+    const {data,error}=await sb.from('pl18_plans').select('assignments,unavailable').eq('plan_date',day.value).eq('shift',activeShift).maybeSingle();
+    if(error){console.error(error);alert('No s’ha pogut carregar la planificació compartida.');}
+    state=data?{assignments:data.assignments||[],unavailable:data.unavailable||[]}:{assignments:[],unavailable:[]}; selected=null; render(); loading=false;
+  }
+  save=async function(){
+    localStorage.setItem('placa18-'+activeShift,JSON.stringify(state));
+    if(loading||!auth.isAdmin)return;
+    const {error}=await sb.from('pl18_plans').upsert({plan_date:day.value,shift:activeShift,assignments:state.assignments,unavailable:state.unavailable,updated_by:auth.session.user.id},{onConflict:'plan_date,shift'});
+    if(error){console.error(error);alert('No s’han pogut desar els canvis compartits.');}
+  };
+  setShift=async function(shift){
+    if(shift===activeShift)return;
+    activeShift=shift; selected=null;
+    document.querySelectorAll('[data-shift]').forEach(b=>b.classList.toggle('active',b.dataset.shift===shift));
+    document.querySelector('#shift-label').childNodes[0].textContent=shift==='mati'?'Torn de matí ':'Torn d’horabaixa ';
+    await loadPlan();
+  };
+  document.querySelectorAll('[data-shift]').forEach(b=>b.onclick=()=>setShift(b.dataset.shift));
+  day.onchange=loadPlan;
+  await readSharedData(); await loadPlan();
+  sb.channel('pl18-board-live')
+    .on('postgres_changes',{event:'*',schema:'public',table:'pl18_plans'},p=>{if(p.new?.plan_date===day.value&&p.new?.shift===activeShift)loadPlan()})
+    .on('postgres_changes',{event:'*',schema:'public',table:'pl18_staff_public'},readSharedData)
+    .on('postgres_changes',{event:'*',schema:'public',table:'pl18_rules'},readSharedData)
+    .subscribe();
+})();
 </script></body></html>
