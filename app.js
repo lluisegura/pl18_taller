@@ -23,7 +23,7 @@
         const email = document.querySelector('#pl18-admin').value;
         const pin = document.querySelector('#pl18-pin').value.trim();
         const note = document.querySelector('#pl18-auth-message');
-        if (!/^\\d{6}$/.test(pin)) { note.textContent = 'Introdueix un PIN de 6 dígits.'; return; }
+        if (!/^\d{6}$/.test(pin)) { note.textContent = 'Introdueix un PIN de 6 dígits.'; return; }
         note.textContent = 'Comprovant l’accés…';
         const { error } = await sb.auth.signInWithPassword({ email, password: pin });
         if (error) { note.textContent = 'Administrador o PIN incorrecte.'; return; }
@@ -63,7 +63,7 @@
     document.querySelector('#pl18-change-pin').onclick = async () => {
       const pin = prompt('Nou PIN de 6 dígits:');
       if (pin === null) return;
-      if (!/^\\d{6}$/.test(pin)) { alert('El PIN ha de tenir exactament 6 dígits.'); return; }
+      if (!/^\d{6}$/.test(pin)) { alert('El PIN ha de tenir exactament 6 dígits.'); return; }
       const { error } = await sb.auth.updateUser({ password: pin });
       alert(error ? 'No s’ha pogut canviar el PIN.' : 'PIN actualitzat correctament.');
     };
