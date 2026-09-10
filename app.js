@@ -82,8 +82,14 @@
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') { alert('No s’han autoritzat els avisos. Pots activar-los des dels ajustos del navegador.'); return; }
     try {
-      const registration = await navigator.serviceWorker.register('sw.js');
-      const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toUint8Array(vapidPublicKey) });
+      // A Safari/Chrome pot trigar uns instants a activar el Service Worker.
+      // Esperam la versió activa abans de crear la subscripció push.
+      await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      const registration = await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toUint8Array(vapidPublicKey) });
+      }
       const { data, error } = await sb.functions.invoke('subscribe-push', { body: { subscription: subscription.toJSON() } });
       if (error || data?.error) throw error || new Error(data.error);
       alert('Avisos activats en aquest dispositiu.');
